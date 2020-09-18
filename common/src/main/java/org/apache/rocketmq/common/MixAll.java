@@ -312,6 +312,7 @@ public class MixAll {
     }
 
     public static void properties2Object(final Properties p, final Object object) {
+        //通过反射拿到配置类的set方法，根据Properties为字段设置值
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();

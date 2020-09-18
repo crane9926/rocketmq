@@ -68,26 +68,44 @@ public class NamesrvStartup {
         return null;
     }
 
+    /**
+     * 利用commandLine命令行工具读取-c指定的配置文件路径，然后将其读取到流中，生成properties对象，
+     * 最后将namesrvConfig和nettyServerConfig对象进行初始化。
+     * @param args
+     * @return
+     * @throws IOException
+     * @throws JoranException
+     */
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
 
+        // 创建命令行参数对象，这里定义了 -h 和 -n参数
         Options options = ServerUtil.buildCommandlineOptions(new Options());
+        // 根据Options和运行时参数args生成命令行对象，buildCommandlineOptions定义了-c参数（Name server config properties file）和-p参数（Print all config item）
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
             System.exit(-1);
             return null;
         }
 
+        //nameServer加载配置文件
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+
+        //根据运行时传递的参数生成commandLine命令行对象，
+        // 用于解析运行时类似于 -c 指定文件路径，然后填充到namesrvConfig和nettyServerConfig对象中
+
         if (commandLine.hasOption('c')) {
+            // 读取命令行-c参数指定的配置文件
             String file = commandLine.getOptionValue('c');
             if (file != null) {
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
                 properties = new Properties();
+                // 加载到属性对象
                 properties.load(in);
+                // 装载配置
                 MixAll.properties2Object(properties, namesrvConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
 
@@ -125,6 +143,7 @@ public class NamesrvStartup {
 
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
+        //注册一遍properties防止丢失
         // remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
 
@@ -142,7 +161,7 @@ public class NamesrvStartup {
             controller.shutdown();
             System.exit(-3);
         }
-
+        //注册jvm钩子函数，在jvm进程关闭之前，现将线程池关闭，及时释放资源
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -151,6 +170,7 @@ public class NamesrvStartup {
             }
         }));
 
+        //启动
         controller.start();
 
         return controller;

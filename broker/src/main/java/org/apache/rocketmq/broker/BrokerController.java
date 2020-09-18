@@ -887,8 +887,9 @@ public class BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            //broker定时向所有nameServer发送心跳包
             @Override
             public void run() {
                 try {
