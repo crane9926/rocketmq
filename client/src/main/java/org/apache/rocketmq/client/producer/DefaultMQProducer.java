@@ -108,6 +108,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Indicate whether to retry another broker on sending failure internally.
+     * 消息重试选择另外一个broker时，是否不等存储结果就返回。
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
@@ -490,7 +491,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Same to {@link #send(Message)} with message queue selector specified.
-     *
+     *消息发送时，指定消息队列选择算法
      * @param msg Message to send.
      * @param selector Message queue selector, through which we get target message queue to deliver message to.
      * @param arg Argument to work along with message queue selector.
@@ -761,6 +762,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param key accesskey
      * @param newTopic topic name
      * @param queueNum topic's queue number
+     *主题系统标签，默认为0
      * @param topicSysFlag topic system flag
      * @throws MQClientException if there is any client error.
      */

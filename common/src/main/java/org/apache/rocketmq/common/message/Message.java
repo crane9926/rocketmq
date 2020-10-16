@@ -38,6 +38,18 @@ public class Message implements Serializable {
         this(topic, "", "", 0, body, true);
     }
 
+    /**
+     *
+     * @param topic
+     * tags用于消息过滤
+     * @param tags
+     * keys用于Message索引
+     * @param keys
+     * @param flag
+     * @param body
+     * waitStoreMsgOK表示是否等消息存储完成后再返回
+     * @param waitStoreMsgOK
+     */
     public Message(String topic, String tags, String keys, int flag, byte[] body, boolean waitStoreMsgOK) {
         this.topic = topic;
         this.flag = flag;
@@ -145,6 +157,10 @@ public class Message implements Serializable {
         return 0;
     }
 
+    /**
+     * 设置消息延迟级别，用于定时消息和消息重试
+     * @param level
+     */
     public void setDelayTimeLevel(int level) {
         this.putProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(level));
     }
