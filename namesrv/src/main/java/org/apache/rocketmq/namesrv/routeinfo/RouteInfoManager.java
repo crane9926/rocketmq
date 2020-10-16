@@ -134,8 +134,8 @@ public class RouteInfoManager {
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 //判断broker所属集群是否存在
                 if (null == brokerNames) {
-                    brokerNames = new HashSet<String>();
                     this.clusterAddrTable.put(clusterName, brokerNames);
+                    brokerNames = new HashSet<String>();
                 }
                 brokerNames.add(brokerName);
 
@@ -445,12 +445,16 @@ public class RouteInfoManager {
         return null;
     }
 
+    /**
+     * 每十秒执行一次broker的心跳检测
+     */
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
+                //120秒无心跳则移除broker，关闭channel
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
@@ -459,6 +463,11 @@ public class RouteInfoManager {
         }
     }
 
+    /**
+     * 路由表维护
+     * @param remoteAddr
+     * @param channel
+     */
     public void onChannelDestroy(String remoteAddr, Channel channel) {
         String brokerAddrFound = null;
         if (channel != null) {
@@ -492,6 +501,7 @@ public class RouteInfoManager {
 
             try {
                 try {
+                    //申请写锁
                     this.lock.writeLock().lockInterruptibly();
                     this.brokerLiveTable.remove(brokerAddrFound);
                     this.filterServerTable.remove(brokerAddrFound);
