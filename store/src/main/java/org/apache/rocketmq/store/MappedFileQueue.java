@@ -191,18 +191,29 @@ public class MappedFileQueue {
         return 0;
     }
 
+    /**
+     * 获取最后一个可写入的mappedFile文件
+     *
+     * @param startOffset
+     * @param needCreate 创建mappedFile文件的起始位置
+     * @return
+     */
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
+        //为-1时默认不创建
         long createOffset = -1;
         MappedFile mappedFileLast = getLastMappedFile();
 
+        //当一个映射文件都不存在时
         if (mappedFileLast == null) {
+            //计算出来的是：文件大小为mappedFileSize时，startOffset位点所在mappedFile的起始offset
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
-
+         //如果最后一个映射文件已经满了，则将要新创建的文件的起始偏移为：最后一个映射文件的起始偏移+文件大小
         if (mappedFileLast != null && mappedFileLast.isFull()) {
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
 
+        //创建文件
         if (createOffset != -1 && needCreate) {
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath = this.storePath + File.separator

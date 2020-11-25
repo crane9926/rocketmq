@@ -65,7 +65,7 @@ public class MessageDecoder {
 
         input.put(addr);
         input.putLong(offset);
-
+        //把字节数组转化成字符串
         return UtilAll.bytes2string(input.array());
     }
 
@@ -441,6 +441,11 @@ public class MessageDecoder {
         return map;
     }
 
+    /**
+     * 把消息转化成二进制数组
+     * @param message
+     * @return
+     */
     public static byte[] encodeMessage(Message message) {
         //only need flag, body, properties
         byte[] body = message.getBody();
@@ -523,6 +528,7 @@ public class MessageDecoder {
         }
         byte[] allBytes = new byte[allSize];
         int pos = 0;
+        //把list列表中的每一个二进制数组合并成一个二进制数组
         for (byte[] bytes : encodedMessages) {
             System.arraycopy(bytes, 0, allBytes, pos, bytes.length);
             pos += bytes.length;

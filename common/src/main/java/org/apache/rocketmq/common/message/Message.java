@@ -27,6 +27,7 @@ public class Message implements Serializable {
 
     private String topic;
     private int flag;
+    //延迟消息时，用于real topic 和 real queueId
     private Map<String, String> properties;
     private byte[] body;
     private String transactionId;

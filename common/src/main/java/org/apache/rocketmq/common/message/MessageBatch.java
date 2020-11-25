@@ -54,6 +54,7 @@ public class MessageBatch extends Message implements Iterable<Message> {
             if (first == null) {
                 first = message;
             } else {
+                //检查是不是同一个topic下的消息
                 if (!first.getTopic().equals(message.getTopic())) {
                     throw new UnsupportedOperationException("The topic of the messages in one batch should be the same");
                 }

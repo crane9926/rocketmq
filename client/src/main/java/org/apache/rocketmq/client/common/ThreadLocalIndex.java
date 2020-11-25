@@ -23,9 +23,14 @@ public class ThreadLocalIndex {
     private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
     private final Random random = new Random();
 
+    /**
+     * 获取当前线程号，并加一
+     * @return
+     */
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
+            //随机数
             index = Math.abs(random.nextInt());
             if (index < 0)
                 index = 0;
