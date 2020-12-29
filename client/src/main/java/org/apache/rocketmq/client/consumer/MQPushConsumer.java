@@ -40,16 +40,16 @@ public interface MQPushConsumer extends MQConsumer {
      */
     @Deprecated
     void registerMessageListener(MessageListener messageListener);
-
+    //注册并发消息事件监昕
     void registerMessageListener(final MessageListenerConcurrently messageListener);
-
+    //注册顺序消息事件监昕
     void registerMessageListener(final MessageListenerOrderly messageListener);
 
     /**
      * Subscribe some topic
-     *
+     *基于topic订阅，使用表达式过滤消息
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
-     * null or * expression,meaning subscribe
+     * null or * expression,meaning subscribe 消息注册表达式
      * all
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
@@ -88,7 +88,7 @@ public interface MQPushConsumer extends MQConsumer {
 
     /**
      * Unsubscribe consumption some topic
-     *
+     *取消订阅
      * @param topic message topic
      */
     void unsubscribe(final String topic);

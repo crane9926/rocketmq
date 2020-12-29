@@ -102,6 +102,18 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
+    /**
+     * broker更新偏移量入口
+     *
+     * （更新consumerOffsetManager中的内存map:offsetTable）
+     *
+     * Broker 端默认10s 持久化一次消息进度(即持久化offsetTable中的数据。通过broker中的定时器，定时调用consumerOffsetManager.persist()实现)，
+     * 存储文件名：{RocketMQ_ HOME}/store/config/consumerOffset.json
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =

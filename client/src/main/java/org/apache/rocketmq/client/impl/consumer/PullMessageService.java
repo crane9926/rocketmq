@@ -27,6 +27,10 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 
+/**
+ * RocketMQ 使用一个单独的线程
+ * PullMessageService 来负责消息的拉取。
+ */
 public class PullMessageService extends ServiceThread {
     private final InternalLogger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
@@ -56,6 +60,12 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    /**
+     * 将pullRequest放入pullRequestQueue中。
+     *
+     * RebalanceImpl就是下节重点要介绍的消息队列负载机制，也就是PullRequest对象真正创建的地方。
+     * @param pullRequest
+     */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);
@@ -77,6 +87,7 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void pullMessage(final PullRequest pullRequest) {
+        //根据消费者组名称获取消费者内部实现类MQConsumerInner
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
@@ -89,10 +100,14 @@ public class PullMessageService extends ServiceThread {
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
-
+        //一种通用的设计技巧，stopped 声明为volatile， 每执行一次业务逻辑检测一下其运行状态，
+        // 可以通过其他线程将stopped 设置为true 从而停止该线程。
         while (!this.isStopped()) {
             try {
+                //从pullRequestQueue 中获取一个PullRequest 消息拉取任务，如果pullRequestQueue为空，
+                // 则线程将阻塞，直到有拉取任务被放入。（任务放入入口：RebalanceImpl#updateProcessQueueTableInRebalance）
                 PullRequest pullRequest = this.pullRequestQueue.take();
+                //消息拉取
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {
             } catch (Exception e) {

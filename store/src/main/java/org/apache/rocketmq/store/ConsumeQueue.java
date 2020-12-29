@@ -152,14 +152,23 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     *
+     * @param timestamp
+     * @return
+     */
     public long getOffsetInQueueByTime(final long timestamp) {
+        //根据时间戳定位物理文件
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
+            //采取二分查找
             long offset = 0;
+            //取消息队列最小逻辑偏移量与该文件最小偏移量二者中的最小偏移量为low
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
+            //获取当前存储文件中有效的最小消息物理偏移量minPhysicOffset ，如果查找到消息偏移量小于该物理偏移量， 则结束该查找过程
             long minPhysicOffset = this.defaultMessageStore.getMinPhyOffset();
             SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
             if (null != sbr) {
@@ -429,13 +438,15 @@ public class ConsumeQueue {
             log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
             return true;
         }
-
+        //依次将消息偏移量、消息长度、tag hash cod e 写入到ByteBuffer中
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
         this.byteBufferIndex.putLong(offset);
         this.byteBufferIndex.putInt(size);
         this.byteBufferIndex.putLong(tagsCode);
 
+        //根据consumeQueueOffset计算ConumeQeue中的物理地址,将内容追加到ConsumeQueue的存映射文件中（只追加不刷盘）
+        //ConumeQueue的刷盘方式固定为异步刷盘模式
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
 
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
@@ -488,16 +499,25 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 根据startIndex 获取消息消费队列条目
+     * @param startIndex
+     * @return
+     */
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
+        //startIndex为逻辑下标，CQ_STORE_UNIT_SIZE为ConsumeQueue中单个条目的长度即20字节
+        //startindex*20 得到的是consumequeue（即某一个队列文件数组）中的物理偏移量（即物理位置）
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
         if (offset >= this.getMinLogicOffset()) {
+            //根据物理位置定位具体的物理文件
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
                 return result;
             }
         }
+        //offset小于minLogicOffset则返回null(说明消息已经被删除)
         return null;
     }
 
@@ -545,6 +565,10 @@ public class ConsumeQueue {
         this.maxPhysicOffset = maxPhysicOffset;
     }
 
+    /**
+     * 重置ConsumeQueue 的maxPhysicOffset 与minLogicOffset ，
+     * 然后调用MappedFileQueue的destory方法,将消息消费队列目录下的所有文件全部删除
+     */
     public void destroy() {
         this.maxPhysicOffset = -1;
         this.minLogicOffset = 0;

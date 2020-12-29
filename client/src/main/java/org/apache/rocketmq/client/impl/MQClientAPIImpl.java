@@ -748,6 +748,15 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    /**
+     * 消息拉取客户端调用入口
+     * @param addr
+     * @param request
+     * @param timeoutMillis
+     * @param pullCallback
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
     private void pullMessageAsync(
         final String addr,
         final RemotingCommand request,
@@ -760,6 +769,8 @@ public class MQClientAPIImpl {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
+                        //在收到服务端响应结构后会回调PullCallback 的on Success 或onException,
+                        //PullCallBack对象在DefaultMQPushConsumerlmpl#pul!Message 中创建。
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response);
                         assert pullResult != null;
                         pullCallback.onSuccess(pullResult);
@@ -811,6 +822,7 @@ public class MQClientAPIImpl {
                 throw new MQBrokerException(response.getCode(), response.getRemark());
         }
 
+        //根据响应结果解码成PullResultExt 对象，此时只是从网络中读取消息列表到byte[] messageBinary 属性
         PullMessageResponseHeader responseHeader =
             (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
 
@@ -998,6 +1010,7 @@ public class MQClientAPIImpl {
         final UpdateConsumerOffsetRequestHeader requestHeader,
         final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
+        //通过请求码UPDATE_CONSUMER_OFFSET，可以找到broker服务端对应入口
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
@@ -1116,12 +1129,17 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
-
+        //消费者组
         requestHeader.setGroup(consumerGroup);
+        //原始主题
         requestHeader.setOriginTopic(msg.getTopic());
+        //消息物理偏移量
         requestHeader.setOffset(msg.getCommitLogOffset());
+        //延迟级别
         requestHeader.setDelayLevel(delayLevel);
+        //原始消息id
         requestHeader.setOriginMsgId(msg.getMsgId());
+        //最大重试次数，默认16次
         requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),

@@ -208,10 +208,11 @@ public class UtilAll {
 
             if (!file.exists())
                 return -1;
-
+            //获取磁盘总容量
             long totalSpace = file.getTotalSpace();
 
             if (totalSpace > 0) {
+                //获取磁盘剩余容量
                 long freeSpace = file.getFreeSpace();
                 long usedSpace = totalSpace - freeSpace;
 

@@ -117,7 +117,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             return;
 
         final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
-
+        //????为什么不批量提交offset到broker
         for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();
             AtomicLong offset = entry.getValue();

@@ -114,6 +114,18 @@ public class ExpressionMessageFilter implements MessageFilter {
         return true;
     }
 
+    /**
+     * 如果订阅消息为空，返回true ，不过滤；如果是类过滤模式，返回true ；
+     * 如果是TAG过滤模式，并且消息的tagsCode 为空或tagsCode 小于0 ，返回true ，说明消息在发送时没有设置tag 。
+     * 如果订阅消息的TAG hashcodes 集合中包含消息的tagsCode ，返回true 。
+     *
+     * 基于TAG模式，根据ConsumeQueue进行消息过滤时只对比tag的hash code ，所以基于TAG 模
+     * 式消息过滤，还需要在消息消费端对消息tag 进行精确匹配。
+     *
+     * @param msgBuffer message buffer in commit log, may be null if not invoked in store. 消息内容
+     * @param properties message properties, should decode from buffer if null by yourself. 消息属性，主要用于SQL92过滤模式
+     * @return
+     */
     @Override
     public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
         if (subscriptionData == null) {
@@ -127,7 +139,6 @@ public class ExpressionMessageFilter implements MessageFilter {
         if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
             return true;
         }
-
         ConsumerFilterData realFilterData = this.consumerFilterData;
         Map<String, String> tempProperties = properties;
 

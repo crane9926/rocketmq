@@ -67,18 +67,39 @@ public class PullAPIWrapper {
         this.unitMode = unitMode;
     }
 
+    /**
+     *  这里对获得的消息做拦截，TAG过滤也在这里处理
+     *
+     *
+     * 从消息拉取流程知道，消息拉取线程PullMessageService 默认会使用异步方式从服务器
+     * 拉取消息，消息消费端会通过PullAPIWrapper 从响应结果解析出拉取到的消息。如果消息
+     * 过滤模式为TAG 模式，并且订阅TAG 集合不为空，则对消息的tag 进行判断，如果集合中
+     * 包含消息的TAG 则返回给消费者消费，否则跳过。
+     *
+     *  broker端也不会关注tag(broker只过滤tag的hashcode)，tag完全由客户端处理。
+     * @param mq
+     * @param pullResult
+     * @param subscriptionData
+     * @return
+     */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
+
+        //查找到了对应的消息
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
+            //拿到全量的拉取的消息
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
             List<MessageExt> msgListFilterAgain = msgList;
+            //如果是需要做过滤
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
+                //开始做过滤，如果是对应的，就消费，否则就直接废弃了
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
+                //处理和事务相关的东西
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
                         if (subscriptionData.getTagsSet().contains(msg.getTags())) {
@@ -140,6 +161,26 @@ public class PullAPIWrapper {
         }
     }
 
+    /**
+     *
+     * @param mq 拉取消息的队列
+     * @param subExpression 消息过滤表达式
+     * @param expressionType 消息过滤表达式类型，分为TAG 、SQL92 。
+     * @param subVersion
+     * @param offset 拉取偏移量
+     * @param maxNums 本次拉取最大消息条数，默认32条
+     * @param sysFlag 拉取系统标记
+     * @param commitOffset 当前MessageQueue 的消费进度（内存中） 。
+     * @param brokerSuspendMaxTimeMillis 消息拉取过程中允许Broker 挂起时间，默认15s 。
+     * @param timeoutMillis 请求broker超时时间
+     * @param communicationMode 消息拉取模式，默认为异步拉取
+     * @param pullCallback ：从Broker 拉取到消息后的回调方法。
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public PullResult pullKernelImpl(
         final MessageQueue mq,
         final String subExpression,
@@ -154,6 +195,10 @@ public class PullAPIWrapper {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        //根据brokerName 、BrokerId 从MQClientlnstance 中获取Broker 地址。
+
+        //在整个RocketMQBroker的部署结构中,相同名称的Broker 构成主从结构，其BrokerId 会不一样，
+        // 在每次拉取消息后，会给出一个建议，下次拉取从主节点还是从节点拉取。
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
@@ -191,7 +236,8 @@ public class PullAPIWrapper {
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
             requestHeader.setExpressionType(expressionType);
-
+            //如果消息过滤模式为类过滤，则需要根据主题名称、broker 地址找到注册在
+            //Broker上的FilterServer 地址，从FilterServer 上拉取消息，否则从Broker 上拉取消息。
             String brokerAddr = findBrokerResult.getBrokerAddr();
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
                 brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);

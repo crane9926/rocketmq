@@ -30,6 +30,10 @@ public class ManyPullRequest {
         this.pullRequestList.addAll(many);
     }
 
+    /**
+     * 存在并发原因：reputMessageService内部将持有PullRequestHoldService ，也会唤醒挂起线程从而执行消息拉取尝试。
+     * @return
+     */
     public synchronized List<PullRequest> cloneListAndClear() {
         if (!this.pullRequestList.isEmpty()) {
             List<PullRequest> result = (ArrayList<PullRequest>) this.pullRequestList.clone();

@@ -33,6 +33,9 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * index文件的刷盘并不是采取定时刷盘机制，而是每更新一次索引文件就会将上一次的改动刷写到磁盘。
+ */
 public class IndexService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     /**
@@ -54,6 +57,11 @@ public class IndexService {
             StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
     }
 
+    /**
+     * 加载索引文件
+     * @param lastExitOK
+     * @return
+     */
     public boolean load(final boolean lastExitOK) {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
@@ -66,6 +74,8 @@ public class IndexService {
                     f.load();
 
                     if (!lastExitOK) {
+                        //如果上次异常退出，而且索引文件上次刷盘时间 小于 该索引文件消息的最大存储时间，则该文件将立即销毁。
+                        //(个人理解：消息索引刷盘到indexfile文件成功以后，再更新checkPoint的刷盘时间。如果checkPoint的刷盘时间小说明刷盘未正常完成)
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
                             f.destroy(0);
@@ -199,12 +209,15 @@ public class IndexService {
     }
 
     public void buildIndex(DispatchRequest req) {
+        //获取或者创建indexFile文件
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
+            //获取indexFile文件中的消息在commitLog中的最大物理偏移量
             long endPhyOffset = indexFile.getEndPhyOffset();
             DispatchRequest msg = req;
             String topic = msg.getTopic();
             String keys = msg.getKeys();
+            //如果消息的物理偏移量小于endPhyOffset则说明是重复消息，忽略本次索引构建。
             if (msg.getCommitLogOffset() < endPhyOffset) {
                 return;
             }
@@ -220,6 +233,7 @@ public class IndexService {
             }
 
             if (req.getUniqKey() != null) {
+                //如果消息唯一键不为空，则添加到hash索引中
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
                     log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
@@ -227,6 +241,7 @@ public class IndexService {
                 }
             }
 
+            //支持为同一个消息建立多个索引
             if (keys != null && keys.length() > 0) {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                 for (int i = 0; i < keyset.length; i++) {
