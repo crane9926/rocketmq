@@ -85,7 +85,7 @@ public class PullAPIWrapper {
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
-
+        //根据主服务器的建议下次拉取brokerId 来更新pullFromWhichNodeTable
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
 
         //查找到了对应的消息
@@ -256,6 +256,15 @@ public class PullAPIWrapper {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    /**
+     *
+     * 从FromWhichNodeTable缓存表中获取 该消息消费队列的brokerid ，如果找到， 则返回，否则返回brokerName 的主节点。
+     * 那pullFrom WbichNodeTable 消息从何而来呢？
+     * 原来消息消费拉取线程PullMessageService根据PullRequest 请求从主服务器拉取消息后会返回下一次建议拉取的brokerId ，消
+     * 息消费者线程在收到消息后，会根据主服务器的建议拉取brokerId 来更新pulLFromWhichNodeTable
+     * @param mq
+     * @return
+     */
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
         if (this.isConnectBrokerByUser()) {
             return this.defaultBrokerId;
