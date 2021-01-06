@@ -59,7 +59,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
         LOGGER.debug("Transaction request:{}", requestHeader);
         if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
             response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
-            LOGGER.warn("Message store is slave mode, so end transaction is forbidden. ");
+            LOGGER.warn("Message store is slave mode, so end transaction is forbidden.");
             return response;
         }
 
@@ -124,18 +124,25 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
         }
         OperationResult result = new OperationResult();
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
+            //1 首先从结束事务请求命令中获取消息的物理偏移量（ commitlogOffset ）
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
+                    //2 然后恢复消息的主题、消费队列，构建新的消息对象
                     MessageExtBrokerInner msgInner = endMessageTransaction(result.getPrepareMessage());
                     msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), requestHeader.getCommitOrRollback()));
                     msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
                     MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                    //3 然后将消息再次存储在commitlog 文件中，此时的消息主题则为业务方发送的消
+                    //息，将被转发到对应的消息消费队列，供消息消费者消费。
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
+                        //4 消息存储后，删除prepare 消息，其实现方法并不是真正的删除，而是将prepare 消
+                        //息存储到RMQ_SYS_TRANS_OP_HALF_TOPIC 主题中，表示该事务消息（ prepare 状态的
+                        //消息）已经处理过（提交或回滚），为未处理的事务进行事务回查提供查找依据。
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                     }
                     return sendResult;

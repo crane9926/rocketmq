@@ -243,13 +243,13 @@ public abstract class RebalanceImpl {
 
     /**
      * 主要思路:是遍历当前负载队列集合，如果队列不在新分配队列集合中，需要将该队列停止消费并保存消费进度。
-     * 遍历已分配的队列，如果队列不在队列负载表中（ processQueueTable ） 则需要创建该队列拉取任务PullRequest ，
-     * 然后添加到PullMessageService 线程的pullRequestQueue 中， Pul IMessageService 才会继续拉取任务。
+     * 遍历新分配的队列，如果队列不在当前队列负载表中（ processQueueTable ） 则需要创建该队列拉取任务PullRequest ，
+     * 然后添加到PullMessageService 线程的pullRequestQueue 中， PullMessageService 才会继续拉取任务。
      *
      *
-     *Rebalanceservice 线程每隔2 0s 对消费者订阅的主题进行一次队列重新分配， 每一次
+     *Rebalanceservice 线程每隔20s 对消费者订阅的主题进行一次队列重新分配， 每一次
      *分配都会获取主题的所有队列、从Broker 服务器实时查询当前该主题该消费组内消费者列
-     * 表， 对新分配的消息队列会创建对应的P ullRequest 对象。在一个JVM 进程中，同一个消
+     * 表， 对新分配的消息队列会创建对应的PullRequest对象。在一个JVM 进程中，同一个消
      * 费组同一个队列只会存在一个PullRequest 对象。
      * @param topic
      * @param isOrder
@@ -278,7 +278,7 @@ public abstract class RebalanceImpl {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 //发送请求从Broker 中获取该消费组内当前所有的消费者客户端ID
                 //消费者在启动的时候会向MQClientlnstance 中注册消费者， 然后MQClientlnstance 会向所有的Broker 发送心跳包，
-                //心跳包中包含MQC!ientlnstance 的消费者信息
+                //心跳包中包含MQClientInstance 的消费者信息
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {

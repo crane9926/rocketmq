@@ -26,6 +26,7 @@ public interface TransactionListener {
      * @param msg Half(prepare) message
      * @param arg Custom business parameter
      * @return Transaction state
+     * 执行本地事务
      */
     LocalTransactionState executeLocalTransaction(final Message msg, final Object arg);
 
@@ -35,6 +36,7 @@ public interface TransactionListener {
      *
      * @param msg Check message
      * @return Transaction state
+     * 事务消息状态回查
      */
     LocalTransactionState checkLocalTransaction(final MessageExt msg);
 }

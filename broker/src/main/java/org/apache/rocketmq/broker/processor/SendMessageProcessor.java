@@ -330,6 +330,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         CompletableFuture<PutMessageResult> putMessageResult = null;
         Map<String, String> origProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        //如果消息为事务消息，则执行prepareMessage方法，否则走普通消息的存储流程。
         if (transFlag != null && Boolean.parseBoolean(transFlag)) {
             //校验是否不允许发送事务消息
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
@@ -339,6 +340,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                 + "] sending transaction message is forbidden");
                 return CompletableFuture.completedFuture(response);
             }
+            //内部调用transactionalMessageBridge.asyncPutHalfMessage,事务消息与非事务消息发送流程的主要区别在于parseHalfMessageInner()
             putMessageResult = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner);
         } else {
             //存储消息

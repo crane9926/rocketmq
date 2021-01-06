@@ -1060,7 +1060,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     /**
-     * 每个DefaultMQPush Consumerlmpl 都持有一个单独的Rebalancelmpl 对象，该方
+     * 每个DefaultMQPushConsumerlmpl 都持有一个单独的Rebalancelmpl 对象，该方
      * 法主要是遍历订阅信息对每个主题的队列进行重新负载.
      */
     @Override
