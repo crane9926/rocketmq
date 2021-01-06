@@ -188,6 +188,7 @@ public abstract class RebalanceImpl {
                 requestBody.setMqSet(mqs);
 
                 try {
+                    //向broker服务端发起加锁
                     Set<MessageQueue> lockOKMQSet =
                         this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
 
@@ -202,6 +203,7 @@ public abstract class RebalanceImpl {
                             processQueue.setLastLockTimestamp(System.currentTimeMillis());
                         }
                     }
+                    //设置ProceeQueue为true 的前提条件是消息消费者（ cid ）向Broker 端发送锁定消息队列的请求并返回加锁成功
                     for (MessageQueue mq : mqs) {
                         if (!lockOKMQSet.contains(mq)) {
                             ProcessQueue processQueue = this.processQueueTable.get(mq);
@@ -415,6 +417,7 @@ public abstract class RebalanceImpl {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                        //顺序消息和并发消息的关键区别：顺序消息在创建消息队列拉取任务时需要在Broker 服务器锁定该消息队列。
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
                         pullRequest.setNextOffset(nextOffset);

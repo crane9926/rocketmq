@@ -53,6 +53,12 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 /**
+ * RocketMQ 支持局部消息顺序消费，可以确保同一个消息消费队列中的消息被顺序消
+ * 费，如果需要做到全局顺序消费则可以将主题配置成一个队列
+ *
+ * 顺序消息消费与并发消息消费的第一个关键区别：顺序消息在创建消息队列拉取任务时需要在Broker 服务器锁定该消息队列。
+ *
+ *
  * 顺序消息消费的各个环节基本都是围绕消息消费队列（ MessageQueue ）与消息处理队
  * 列（ ProceeQueue） 展开的。消息消费进度拉取，消息进度消费都要判断ProceeQueue 的
  * locked 是否为true ，设置ProceeQueue为true 的前提条件是消息消费者（ cid ）向Broker 端
@@ -116,6 +122,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
+                    //ConsumeMessageOrderlyService 以每2 0s 的频率对分配给自己的消息队列进行自动加锁操作
                     ConsumeMessageOrderlyService.this.lockMQPeriodically();
                 }
             }, 1000 * 1, ProcessQueue.REBALANCE_LOCK_INTERVAL, TimeUnit.MILLISECONDS);
@@ -233,6 +240,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     public synchronized void lockMQPeriodically() {
         if (!this.stopped) {
+            //通过MQClientAPIImpl().lockBatchMQ向服务端加锁
             this.defaultMQPushConsumerImpl.getRebalanceImpl().lockAll();
         }
     }
