@@ -51,8 +51,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 /**
  * 从服务器拉取到消息后回调PullCallBack 回调方法后，
- * 先将消息放入到ProccessQueue 中，然后把消息提交到消费线程池中执行，也就是调用Con
- * sumeMessageService#submitConsumeRequest 开始进入到消息消费的世界中来。
+ * 先将消息放入到ProccessQueue 中，然后把消息提交到消费线程池中执行，也就是调用
+ *ConsumeMessageService#submitConsumeRequest 开始进入到消息消费的世界中来。
  */
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final InternalLogger log = ClientLogger.getLog();
@@ -217,7 +217,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     /**
-     * 提交消息消费
+     * 提交消息进行消费
      * @param msgs
      * @param processQueue 消息处理队列
      * @param messageQueue 消息所属的消费队列（即mq）
@@ -485,7 +485,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                         MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(System.currentTimeMillis()));
                        }
                 }
-                //执行具体的消息消费，调用应用程序消息监昕器的consumeMessage方法，
+                //执行具体的消息消费逻辑，调用应用程序消息监昕器的consumeMessage方法，
                 //进入到具体的消息消费业务逻辑，返回该批消息的消费结果。
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {

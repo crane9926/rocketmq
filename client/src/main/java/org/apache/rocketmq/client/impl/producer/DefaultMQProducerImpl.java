@@ -598,7 +598,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             //循环发送
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-                //选择消息队列
+                //选择消息队列(包含所在的broker和所属的queue的id)
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;

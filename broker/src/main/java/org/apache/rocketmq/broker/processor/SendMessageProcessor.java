@@ -309,6 +309,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(requestHeader.getTopic());
+        //记录消息所属的队列，消息回放时，会把消息在commitlog中的位置 记录到该queue中。
         msgInner.setQueueId(queueIdInt);
         //判断是否是重试和延迟消息
         if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {

@@ -1672,7 +1672,7 @@ public class CommitLog {
             this.resetByteBuffer(storeHostHolder, storeHostLength);
             //
             String msgId;
-            //创建全局唯一消息Id。broker存储时生成的offsetMsgId(存储位置)，不同于client发消息时生成的msgId
+            //此msgId为offsetMsgId：broker存储时生成的offsetMsgId(存储位置)，不同于client发消息时生成的msgId
             if ((sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0) {
                 //根据host地址和写入位置wroteOffset生成msgId
                 // (可以通过Uti1All.string2bytes方法，将msgld字符串还原成16个字节的字节数组，从而提取消息偏移量wroteOffset，可以快速通过msgld找到消息内容)
@@ -1680,6 +1680,11 @@ public class CommitLog {
             } else {
                 msgId = MessageDecoder.createMessageId(this.msgIdV6Memory, msgInner.getStoreHostBytes(storeHostHolder), wroteOffset);
             }
+
+            //msgId：对于客户端来说msgId是由客户端producer实例端生成的，具体来说，调用方法MessageClientIDSetter.createUniqIDBuffer()生成唯一的Id；
+            //
+            //offsetMsgId：offsetMsgId是由Broker服务端在写入消息时生成的（采用”IP地址+Port端口”与“CommitLog的物理偏移量地址”做了一个字符串拼接），
+            //             其中offsetMsgId就是在RocketMQ控制台直接输入查询的那个messageId。
 
             // Record ConsumeQueue information
             keyBuilder.setLength(0);

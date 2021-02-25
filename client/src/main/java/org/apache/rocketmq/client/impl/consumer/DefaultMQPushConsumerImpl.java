@@ -652,7 +652,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
-
+                //开启消费服务
                 this.consumeMessageService.start();
 
                 //向MQClientlnstance 注册消费者，并启动MQClientlnstance ， 在一个JVM 中的
